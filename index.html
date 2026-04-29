@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GetIt</title>
+
+<style>
+body{font-family:Arial;margin:0;background:#f4f8f6;color:#10231a}
+header{background:white;padding:12px 16px;box-shadow:0 2px 10px #ddd;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:22px;font-weight:900}
+.sub{font-size:11px;color:#666}
+button{padding:12px 16px;border-radius:25px;border:none;background:#16724a;color:white;cursor:pointer;font-weight:bold}
+.card{background:white;margin:12px;padding:16px;border-radius:18px;box-shadow:0 5px 16px #dfe8e3}
+input{padding:13px;border-radius:12px;border:1px solid #ccc;width:100%;margin-top:10px;box-sizing:border-box}
+.hero{padding:24px;background:linear-gradient(135deg,#10231a,#16724a);color:white;border-radius:0 0 28px 28px}
+.hero p{color:#dff7ea}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.store-img,.product-img{height:120px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:52px;margin-bottom:10px}
+.pet{background:linear-gradient(135deg,#fff0d8,#ffd9a8)}
+.hardware{background:linear-gradient(135deg,#eee,#d7e0e8)}
+.flower{background:linear-gradient(135deg,#ffe2f2,#ffd2df)}
+.gift{background:linear-gradient(135deg,#e8fff1,#c7f7d7)}
+.petpic{background:#fff2df}
+.toolpic{background:#eef1f5}
+.flowerpic{background:#fff0f8}
+.giftpic{background:#e8fff1}
+.desc{color:#666;font-size:14px;min-height:38px}
+.price{font-size:20px;font-weight:900}
+.qty-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.qty-btn{width:42px;height:42px;border-radius:50%;padding:0;font-size:20px}
+.qty-number{font-size:18px;font-weight:900;min-width:30px;text-align:center}
+.remove-btn{margin-left:auto;padding:8px 14px;border-radius:18px;font-size:14px;background:white;color:#b42318;border:1px solid #b42318}
+.tip-btn{background:white;color:#16724a;border:1px solid #16724a;margin:4px}
+.notice{background:#e6f7ee;padding:12px;border-radius:14px;color:#0f5132;font-weight:bold}
+.footer{text-align:center;padding:20px;font-size:12px;color:#666}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div onclick="home()" style="cursor:pointer;">
+    <div class="brand">Get<span style="color:#16724a">It</span></div>
+    <div class="sub">Powered by GrubSouth</div>
+  </div>
+  <button onclick="checkout()">Cart (<span id="cartCount">0</span>)</button>
+</header>
+
+<div id="app"></div>
+<div class="footer">No hidden fees · You got it.</div>
+
+<script>
+let address="";
+let cart=[];
+let tipAmount=0;
+let tipTouched=false;
+
+let deliveryFee=10;
+let serviceFee=2.49;
+let taxRate=0.09;
+
+let stores={
+giftcard:{
+  name:"GetIt Local Gift Card",
+  slug:"giftcard",
+  icon:"🎁",
+  imageClass:"gift",
+  description:"One gift card. Use it at any participating local GetIt store.",
+  giftCardStore:true,
+  products:[
+    {name:"$25 GetIt Gift Card",description:"Good at any participating GetIt local business. No delivery fee. No service fee.",price:25,img:"🎁",type:"giftpic",giftCard:true},
+    {name:"$50 GetIt Gift Card",description:"Perfect for birthdays, new homeowners, teachers, friends, or local shopping.",price:50,img:"💚",type:"giftpic",giftCard:true},
+    {name:"$100 GetIt Gift Card",description:"A flexible local gift card for flowers, pet supplies, hardware, pool items, and more.",price:100,img:"🏙️",type:"giftpic",giftCard:true}
+  ]
+},
+
+harrison:{
+  name:"Harrison Brothers Hardware",
+  slug:"harrison",
+  icon:"🏛️",
+  imageClass:"hardware",
+  description:"Downtown Huntsville gifts, home goods, local items & hardware",
+  products:[
+    {name:"Local Huntsville Gift",description:"A locally themed gift perfect for visitors, clients, or last-minute thank-yous.",price:24.99,img:"🎁",type:"toolpic"},
+    {name:"Kitchen Towel Set",description:"Decorative towel set for home, kitchen, or gift baskets.",price:18.99,img:"🧺",type:"toolpic"},
+    {name:"Scented Candle",description:"A clean home fragrance gift with a cozy local shop feel.",price:16.99,img:"🕯️",type:"toolpic"}
+  ]
+},
+
+petslove:{
+  name:"Pets Love & Happiness",
+  slug:"petslove",
+  icon:"🐾",
+  imageClass:"pet",
+  description:"Local pet food, treats, toys & pet essentials",
+  products:[
+    {name:"Premium Dog Food Bag",description:"Large bag of everyday premium dog food for pickup or delivery.",price:54.99,img:"🐕",type:"petpic"},
+    {name:"Cat Food Variety Pack",description:"Assorted wet cat food pack for picky eaters or multi-cat homes.",price:24.99,img:"🐈",type:"petpic"},
+    {name:"Natural Dog Treats",description:"Simple, high-value treats for training, rewards, or spoiled pups.",price:13.99,img:"🦴",type:"petpic"}
+  ]
+},
+
+alberts:{
+  name:"Albert’s Flowers",
+  slug:"alberts",
+  icon:"💐",
+  imageClass:"flower",
+  description:"Fresh flowers, gifts & same-day local delivery",
+  products:[
+    {name:"Fresh Flower Bouquet",description:"Seasonal fresh bouquet arranged for birthdays, thank-yous, or everyday surprises.",price:44.99,img:"💐",type:"flowerpic"},
+    {name:"Rose Arrangement",description:"Classic rose arrangement for anniversaries, apologies, or romantic delivery.",price:69.99,img:"🌹",type:"flowerpic"}
+  ]
+}
+};
+
+function updateCart(){
+document.getElementById("cartCount").innerText=cart.length;
+}
+
+function itemCount(slug,index){
+return cart.filter(x=>x.slug===slug && x.index===index).length;
+}
+
+function cartHasOnlyGiftCards(){
+return cart.length>0 && cart.every(x=>x.giftCard===true);
+}
+
+function home(){
+document.getElementById("app").innerHTML=`
+<div class="hero">
+<h1>Need it? You got it.</h1>
+<p>Order from local businesses. Pickup, delivery, or send a local gift card — powered by GrubSouth.</p>
+<input placeholder="Enter your address..." onchange="address=this.value" value="${address}">
+<button onclick="storeSelect()" style="margin-top:14px;width:100%;">Start Ordering</button>
+</div>
+
+<div class="card">
+<h3>What is GetIt?</h3>
+<p style="color:#666;">GetIt helps customers order from local businesses with simple pricing, local delivery, and no hidden fees.</p>
+<div class="notice">You want local? You got it.</div>
+</div>
+
+<div class="card">
+<h3>Featured stores</h3>
+<div class="grid">
+${Object.values(stores).map(storeCard).join("")}
+</div>
+</div>`;
+updateCart();
+}
+
+function storeCard(s){
+return `
+<div class="card" onclick="openStore('${s.slug}')" style="cursor:pointer;">
+<div class="store-img ${s.imageClass}">${s.icon}</div>
+<h3>${s.name}</h3>
+<p style="color:#666;">${s.description}</p>
+<button>Shop</button>
+</div>`;
+}
+
+function storeSelect(){
+document.getElementById("app").innerHTML=`
+<div style="padding:14px;">
+<h2>You got it — choose a store</h2>
+<p style="color:#666;">${address ? "Delivering to: "+address : "Pickup, delivery, or gift card available"}</p>
+</div>
+<div class="grid">
+${Object.values(stores).map(storeCard).join("")}
+</div>`;
+}
+
+function openStore(slug){
+let s=stores[slug];
+let html=`<div style="padding:14px;">
+<h2>${s.name}</h2>
+<p style="color:#666;">${s.description}</p>
+${s.giftCardStore ? `<div class="notice">Gift cards have no delivery fee and no service fee.</div>` : `<div class="notice">Standard delivery: $10 · Service fee: $2.49 · Tips go to drivers.</div>`}
+</div><div class="grid">`;
+
+s.products.forEach((p,i)=>{
+let count=itemCount(slug,i);
+let btnText=count>0 ? "Add " + count : "Add";
+
+html+=`
+<div class="card">
+<div class="product-img ${p.type}">${p.img}</div>
+<h3>${p.name}</h3>
+<p class="desc">${p.description}</p>
+<p class="price">$${p.price}</p>
+<button onclick="addToCart('${slug}',${i})">${btnText}</button>
+</div>`;
+});
+
+html+=`</div>`;
+document.getElementById("app").innerHTML=html;
+updateCart();
+}
+
+function addToCart(slug,index){
+let p=stores[slug].products[index];
+cart.push({
+  slug,
+  index,
+  name:p.name,
+  description:p.description,
+  price:p.price,
+  img:p.img,
+  store:stores[slug].name,
+  giftCard:p.giftCard===true
+});
+openStore(slug);
+updateCart();
+}
+
+function groupCart(){
+let grouped={};
+cart.forEach(i=>{
+let key=i.slug+"-"+i.index;
+if(!grouped[key]) grouped[key]={...i,qty:0};
+grouped[key].qty++;
+});
+return grouped;
+}
+
+function checkout(){
+let html=`<div style="padding:14px;"><h2>Checkout</h2><p style="color:#666;">You got it — review your order.</p></div>`;
+let subtotal=0;
+let grouped=groupCart();
+let onlyGiftCards=cartHasOnlyGiftCards();
+
+if(cart.length===0){
+html+=`<div class="card"><p>Your cart is empty.</p></div>`;
+} else {
+
+Object.values(grouped).forEach(p=>{
+let line=p.price*p.qty;
+subtotal+=line;
+
+html+=`
+<div class="card">
+<div style="font-size:28px;">${p.img}</div>
+<b>${p.name}</b><br>
+<span style="color:#666;">${p.description}</span><br><br>
+$${p.price} each<br>
+<b>Line total: $${line.toFixed(2)}</b>
+
+<div class="qty-row">
+<button class="qty-btn" onclick="removeOne('${p.slug}',${p.index})">−</button>
+<div class="qty-number">${p.qty}</div>
+<button class="qty-btn" onclick="addOne('${p.slug}',${p.index})">+</button>
+<button class="remove-btn" onclick="removeAll('${p.slug}',${p.index})">Remove</button>
+</div>
+</div>`;
+});
+
+if(!onlyGiftCards && !tipTouched){
+  tipAmount = subtotal < 40 ? 5 : subtotal * 0.15;
+}
+
+if(onlyGiftCards){
+  tipAmount=0;
+}
+
+let tax = onlyGiftCards ? 0 : subtotal * taxRate;
+let finalDeliveryFee = onlyGiftCards ? 0 : deliveryFee;
+let finalServiceFee = onlyGiftCards ? 0 : serviceFee;
+
+let total=subtotal+tax+finalDeliveryFee+finalServiceFee+tipAmount;
+
+if(!onlyGiftCards){
+html+=`
+<div class="card">
+<h3>Tip your driver</h3>
+<p style="color:#666;">100% of tips go to your driver.</p>
+<button class="tip-btn" onclick="setTip(5)">$5</button>
+<button class="tip-btn" onclick="setTip(${(subtotal*.10).toFixed(2)})">10%</button>
+<button class="tip-btn" onclick="setTip(${(subtotal*.15).toFixed(2)})">15%</button>
+<button class="tip-btn" onclick="setTip(${(subtotal*.25).toFixed(2)})">25%</button>
+<button class="tip-btn" onclick="customTip()">Other</button>
+<p><b>Driver Tip:</b> $${tipAmount.toFixed(2)}</p>
+</div>`;
+} else {
+html+=`
+<div class="card">
+<h3>Gift Card Order</h3>
+<p style="color:#666;">Gift cards can be used at any participating GetIt local business.</p>
+<div class="notice">No delivery fee. No service fee.</div>
+</div>`;
+}
+
+html+=`
+<div class="card">
+<p><b>Subtotal:</b> $${subtotal.toFixed(2)}</p>
+<p><b>Tax:</b> $${tax.toFixed(2)}</p>
+<p><b>Delivery:</b> $${finalDeliveryFee.toFixed(2)}</p>
+<p><b>Service Fee:</b> $${finalServiceFee.toFixed(2)}</p>
+<p><b>Driver Tip:</b> $${tipAmount.toFixed(2)}</p>
+<h2>Final Total: $${total.toFixed(2)}</h2>
+<button onclick="confirmOrder()" style="width:100%;">Place Order</button>
+</div>`;
+}
+
+document.getElementById("app").innerHTML=html;
+updateCart();
+}
+
+function setTip(amount){
+tipAmount=amount;
+tipTouched=true;
+checkout();
+}
+
+function customTip(){
+let val=prompt("Enter tip amount:");
+if(val!==null){
+tipAmount=parseFloat(val)||0;
+tipTouched=true;
+checkout();
+}
+}
+
+function removeOne(slug,index){
+let i=cart.findIndex(x=>x.slug===slug&&x.index===index);
+if(i>-1) cart.splice(i,1);
+checkout();
+updateCart();
+}
+
+function addOne(slug,index){
+let p=stores[slug].products[index];
+cart.push({
+  slug,
+  index,
+  name:p.name,
+  description:p.description,
+  price:p.price,
+  img:p.img,
+  store:stores[slug].name,
+  giftCard:p.giftCard===true
+});
+checkout();
+updateCart();
+}
+
+function removeAll(slug,index){
+cart=cart.filter(x=>!(x.slug===slug&&x.index===index));
+checkout();
+updateCart();
+}
+
+function confirmOrder(){
+let onlyGiftCards=cartHasOnlyGiftCards();
+
+document.getElementById("app").innerHTML=`
+<div class="hero">
+<h1>You got it. ✅</h1>
+<p>${onlyGiftCards ? "Your GetIt Local Gift Card order has been sent." : "Your order has been sent. GrubSouth will help coordinate delivery."}</p>
+<button onclick="cart=[];tipAmount=0;tipTouched=false;home()">Back Home</button>
+</div>`;
+updateCart();
+}
+
+home();
+</script>
+
+</body>
+</html>
