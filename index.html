@@ -57,6 +57,7 @@ let tipTouched=false;
 let giftCardDeliveryOption="self";
 let giftCardRecipientEmail="";
 let giftCardNote="";
+
 let deliveryFee=10;
 let serviceFee=2.49;
 let taxRate=0.09;
@@ -285,9 +286,15 @@ html+=`
 } else {
 html+=`
 <div class="card">
-<h3>Gift Card Order</h3>
-<p style="color:#666;">Gift cards can be used at any participating GetIt local business.</p>
-<div class="notice">No delivery fee. No service fee.</div>
+<h3>Gift Card Delivery</h3>
+<p style="color:#666;">Choose where to send the gift card and include an optional note.</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+<button class="tip-btn" style="margin:0;${giftCardDeliveryOption==="self" ? "background:#16724a;color:white;" : ""}" onclick="setGiftCardDelivery('self')">Send to myself</button>
+<button class="tip-btn" style="margin:0;${giftCardDeliveryOption==="email" ? "background:#16724a;color:white;" : ""}" onclick="setGiftCardDelivery('email')">Send to email</button>
+</div>
+${giftCardDeliveryOption==="email" ? `<input type="email" placeholder="Recipient email" value="${giftCardRecipientEmail}" onchange="giftCardRecipientEmail=this.value">` : ""}
+<input placeholder="Gift note (optional)" value="${giftCardNote}" onchange="giftCardNote=this.value">
+<div class="notice" style="margin-top:10px;">No delivery fee. No service fee.</div>
 </div>`;
 }
 
@@ -345,6 +352,11 @@ checkout();
 updateCart();
 }
 
+function setGiftCardDelivery(option){
+giftCardDeliveryOption=option;
+checkout();
+}
+
 function removeAll(slug,index){
 cart=cart.filter(x=>!(x.slug===slug&&x.index===index));
 checkout();
@@ -353,12 +365,21 @@ updateCart();
 
 function confirmOrder(){
 let onlyGiftCards=cartHasOnlyGiftCards();
+let giftCardSummary="";
+
+if(onlyGiftCards){
+  let destination = giftCardDeliveryOption==="email"
+    ? (giftCardRecipientEmail ? ` to ${giftCardRecipientEmail}` : " to the provided email")
+    : " to your email";
+  let noteText = giftCardNote ? ` Note: "${giftCardNote}".` : "";
+  giftCardSummary = ` Your gift card will be sent${destination}.${noteText}`;
+}
 
 document.getElementById("app").innerHTML=`
 <div class="hero">
 <h1>You got it. ✅</h1>
-<p>${onlyGiftCards ? "Your GetIt Local Gift Card order has been sent." : "Your order has been sent. GrubSouth will help coordinate delivery."}</p>
-<button onclick="cart=[];tipAmount=0;tipTouched=false;home()">Back Home</button>
+<p>${onlyGiftCards ? "Your GetIt Local Gift Card order has been sent." + giftCardSummary : "Your order has been sent. GrubSouth will help coordinate delivery."}</p>
+<button onclick="cart=[];tipAmount=0;tipTouched=false;giftCardDeliveryOption='self';giftCardRecipientEmail='';giftCardNote='';home()">Back Home</button>
 </div>`;
 updateCart();
 }
