@@ -33,6 +33,10 @@ input{padding:13px;border-radius:12px;border:1px solid #ccc;width:100%;margin-to
 .tip-btn{background:white;color:#16724a;border:1px solid #16724a;margin:4px}
 .notice{background:#e6f7ee;padding:12px;border-radius:14px;color:#0f5132;font-weight:bold}
 .footer{text-align:center;padding:20px;font-size:12px;color:#666}
+.cart-btn{position:relative}
+.cart-btn.ready{background:#0f5132;box-shadow:0 0 0 3px #d1fae5}
+.added-flash{margin:12px;background:#dcfce7;border:1px solid #86efac;color:#14532d;padding:10px 12px;border-radius:12px;font-weight:700}
+.checkout-banner{position:sticky;bottom:10px;background:#10231a;color:white;margin:12px;padding:14px;border-radius:16px;box-shadow:0 10px 20px #00000033}
 </style>
 </head>
 
@@ -40,14 +44,14 @@ input{padding:13px;border-radius:12px;border:1px solid #ccc;width:100%;margin-to
 
 <header>
   <div onclick="home()" style="cursor:pointer;">
-    <div class="brand">Ge!t<span style="color:#16724a">It</span></div>
+    <div class="brand">Get<span style="color:#16724a">It</span></div>
     <div class="sub">Powered by GrubSouth</div>
   </div>
-  <button onclick="checkout()">Cart (<span id="cartCount">0</span>)</button>
+  <button id="cartBtn" class="cart-btn" onclick="checkout()">Checkout · Cart (<span id="cartCount">0</span>)</button>
 </header>
 
 <div id="app"></div>
-<div class="footer">No hidden fees · You got it.</div>
+<div class="footer">No hidden fees · You got it. · Updated April 30, 2026</div>
 
 <script>
 let address="";
@@ -57,6 +61,7 @@ let tipTouched=false;
 let giftCardDeliveryOption="self";
 let giftCardRecipientEmail="";
 let giftCardNote="";
+let lastAddedMessage="";
 
 let deliveryFee=10;
 let serviceFee=2.49;
@@ -118,6 +123,12 @@ alberts:{
 
 function updateCart(){
 document.getElementById("cartCount").innerText=cart.length;
+let cartBtn=document.getElementById("cartBtn");
+if(cart.length>0){
+  cartBtn.classList.add("ready");
+} else {
+  cartBtn.classList.remove("ready");
+}
 }
 
 function itemCount(slug,index){
@@ -179,6 +190,7 @@ let html=`<div style="padding:14px;">
 <h2>${s.name}</h2>
 <p style="color:#666;">${s.description}</p>
 ${s.giftCardStore ? `<div class="notice">Gift cards have no delivery fee and no service fee.</div>` : `<div class="notice">Standard delivery: $10 · Service fee: $2.49 · Tips go to drivers.</div>`}
+${lastAddedMessage ? `<div class="added-flash">${lastAddedMessage}</div>` : ""}
 </div><div class="grid">`;
 
 s.products.forEach((p,i)=>{
@@ -196,6 +208,9 @@ html+=`
 });
 
 html+=`</div>`;
+if(cart.length>0){
+html+=`<div class="checkout-banner"><div style="font-size:13px;opacity:.9;">${cart.length} item${cart.length===1?"":"s"} in cart</div><button onclick="checkout()" style="width:100%;margin-top:8px;background:#22c55e;color:#0b1f15;">Go to Checkout</button></div>`;
+}
 document.getElementById("app").innerHTML=html;
 updateCart();
 }
@@ -212,6 +227,7 @@ cart.push({
   store:stores[slug].name,
   giftCard:p.giftCard===true
 });
+lastAddedMessage=`✅ Added ${p.name} to cart`;
 openStore(slug);
 updateCart();
 }
@@ -366,6 +382,16 @@ updateCart();
 function confirmOrder(){
 let onlyGiftCards=cartHasOnlyGiftCards();
 let giftCardSummary="";
+
+if(onlyGiftCards && giftCardDeliveryOption==="email") {
+  let email=giftCardRecipientEmail.trim();
+  let emailValid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if(!emailValid){
+    alert("Please enter a valid recipient email before placing the gift card order.");
+    return;
+  }
+  giftCardRecipientEmail=email;
+}
 
 if(onlyGiftCards){
   let destination = giftCardDeliveryOption==="email"
